@@ -33,7 +33,10 @@ import reactor.core.publisher.Mono;
 public class ServletUtils
 {
     /**
-     * 获取String参数
+     * 从当前请求中获取指定名称的 String 类型参数值。
+     *
+     * @param name 参数名称。
+     * @return 参数值 (String)。如果参数不存在，则返回 null。
      */
     public static String getParameter(String name)
     {
@@ -41,7 +44,11 @@ public class ServletUtils
     }
 
     /**
-     * 获取String参数
+     * 从当前请求中获取指定名称的 String 类型参数值，如果不存在则返回默认值。
+     *
+     * @param name 参数名称。
+     * @param defaultValue 默认值。
+     * @return 参数值 (String)，或默认值。
      */
     public static String getParameter(String name, String defaultValue)
     {
@@ -49,7 +56,10 @@ public class ServletUtils
     }
 
     /**
-     * 获取Integer参数
+     * 从当前请求中获取指定名称的 Integer 类型参数值。
+     *
+     * @param name 参数名称。
+     * @return 参数值 (Integer)。如果转换失败或参数不存在，则返回 null。
      */
     public static Integer getParameterToInt(String name)
     {
@@ -57,7 +67,11 @@ public class ServletUtils
     }
 
     /**
-     * 获取Integer参数
+     * 从当前请求中获取指定名称的 Integer 类型参数值，如果不存在则返回默认值。
+     *
+     * @param name 参数名称。
+     * @param defaultValue 默认值。
+     * @return 参数值 (Integer)，或默认值。
      */
     public static Integer getParameterToInt(String name, Integer defaultValue)
     {
@@ -65,7 +79,10 @@ public class ServletUtils
     }
 
     /**
-     * 获取Boolean参数
+     * 从当前请求中获取指定名称的 Boolean 类型参数值。
+     *
+     * @param name 参数名称。
+     * @return 参数值 (Boolean)。如果转换失败或参数不存在，则返回 null。
      */
     public static Boolean getParameterToBool(String name)
     {
@@ -73,7 +90,11 @@ public class ServletUtils
     }
 
     /**
-     * 获取Boolean参数
+     * 从当前请求中获取指定名称的 Boolean 类型参数值，如果不存在则返回默认值。
+     *
+     * @param name 参数名称。
+     * @param defaultValue 默认值。
+     * @return 参数值 (Boolean)，或默认值。
      */
     public static Boolean getParameterToBool(String name, Boolean defaultValue)
     {
@@ -110,7 +131,9 @@ public class ServletUtils
 
 
     /**
-     * 获取request
+     * 获取当前的 HttpServletRequest 对象。
+     *
+     * @return 当前请求对象 (HttpServletRequest)。如果无法获取，则返回 null。
      */
     public static HttpServletRequest getRequest()
     {
@@ -125,7 +148,9 @@ public class ServletUtils
     }
 
     /**
-     * 获取response
+     * 获取当前的 HttpServletResponse 对象。
+     *
+     * @return 当前响应对象 (HttpServletResponse)。如果无法获取，则返回 null。
      */
     public static HttpServletResponse getResponse()
     {
@@ -140,7 +165,9 @@ public class ServletUtils
     }
 
     /**
-     * 获取session
+     * 获取当前的 HttpSession 对象。
+     *
+     * @return 当前会话对象 (HttpSession)。
      */
     public static HttpSession getSession()
     {

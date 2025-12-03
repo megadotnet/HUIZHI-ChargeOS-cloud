@@ -26,10 +26,10 @@ public class CharsetKit
     public static final Charset CHARSET_GBK = Charset.forName(GBK);
 
     /**
-     * 转换为Charset对象
+     * 将字符集名称转换为 Charset 对象。
      * 
-     * @param charset 字符集，为空则返回默认字符集
-     * @return Charset
+     * @param charset 字符集名称。如果为空，则返回默认字符集。
+     * @return Charset 对象。
      */
     public static Charset charset(String charset)
     {
@@ -37,12 +37,12 @@ public class CharsetKit
     }
 
     /**
-     * 转换字符串的字符集编码
+     * 转换字符串的字符集编码。
      * 
-     * @param source 字符串
-     * @param srcCharset 源字符集，默认ISO-8859-1
-     * @param destCharset 目标字符集，默认UTF-8
-     * @return 转换后的字符集
+     * @param source 需要转换的字符串。
+     * @param srcCharset 源字符集名称，默认 ISO-8859-1。
+     * @param destCharset 目标字符集名称，默认 UTF-8。
+     * @return 转换后的字符串。
      */
     public static String convert(String source, String srcCharset, String destCharset)
     {
@@ -50,12 +50,12 @@ public class CharsetKit
     }
 
     /**
-     * 转换字符串的字符集编码
+     * 转换字符串的字符集编码。
      * 
-     * @param source 字符串
-     * @param srcCharset 源字符集，默认ISO-8859-1
-     * @param destCharset 目标字符集，默认UTF-8
-     * @return 转换后的字符集
+     * @param source 需要转换的字符串。
+     * @param srcCharset 源字符集对象，默认 ISO-8859-1。
+     * @param destCharset 目标字符集对象，默认 UTF-8。
+     * @return 转换后的字符串。
      */
     public static String convert(String source, Charset srcCharset, Charset destCharset)
     {
@@ -77,7 +77,9 @@ public class CharsetKit
     }
 
     /**
-     * @return 系统字符集编码
+     * 获取系统默认字符集编码。
+     *
+     * @return 系统默认字符集编码名称 (String)。
      */
     public static String systemCharset()
     {
