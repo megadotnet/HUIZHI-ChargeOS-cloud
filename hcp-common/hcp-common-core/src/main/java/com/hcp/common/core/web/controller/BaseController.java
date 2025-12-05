@@ -19,7 +19,10 @@ public class BaseController
 {
 
     /**
-     * 将前台传递过来的日期格式的字符串，自动转化为Date类型
+     * 初始化数据绑定器。
+     * 将前台传递过来的日期格式的字符串，自动转化为 Date 类型。
+     *
+     * @param binder Web 数据绑定器。
      */
     @InitBinder
     public void initBinder(WebDataBinder binder)
@@ -37,9 +40,9 @@ public class BaseController
 
 
     /**
-     * 响应返回结果
+     * 返回成功响应结果。
      *
-     * 返回成功
+     * @return 成功的 AjaxResult 对象。
      */
     public AjaxResult success()
     {
@@ -47,9 +50,10 @@ public class BaseController
     }
 
     /**
-     * 响应返回结果
+     * 返回带有消息的成功响应结果。
      *
-     * 返回成功消息
+     * @param message 成功消息。
+     * @return 带有消息的成功 AjaxResult 对象。
      */
     public AjaxResult success(String message)
     {
@@ -57,7 +61,10 @@ public class BaseController
     }
 
     /**
-     * 返回成功消息
+     * 返回带有数据的成功响应结果。
+     *
+     * @param data 响应数据。
+     * @return 带有数据的成功 AjaxResult 对象。
      */
     public AjaxResult success(Object data)
     {
@@ -65,7 +72,9 @@ public class BaseController
     }
 
     /**
-     * 返回失败消息
+     * 返回失败响应结果。
+     *
+     * @return 失败的 AjaxResult 对象。
      */
     public AjaxResult error()
     {
@@ -73,7 +82,10 @@ public class BaseController
     }
 
     /**
-     * 返回失败消息
+     * 返回带有消息的失败响应结果。
+     *
+     * @param message 失败消息。
+     * @return 带有消息的失败 AjaxResult 对象。
      */
     public AjaxResult error(String message)
     {
@@ -81,7 +93,10 @@ public class BaseController
     }
 
     /**
-     * 返回警告消息
+     * 返回带有消息的警告响应结果。
+     *
+     * @param message 警告消息。
+     * @return 带有消息的警告 AjaxResult 对象。
      */
     public AjaxResult warn(String message)
     {
@@ -89,10 +104,10 @@ public class BaseController
     }
 
     /**
-     * 响应返回结果
+     * 根据影响行数响应返回结果。
      *
-     * @param rows 影响行数
-     * @return 操作结果
+     * @param rows 影响行数。
+     * @return 如果 rows > 0 返回成功，否则返回失败。
      */
     protected AjaxResult toAjax(int rows)
     {
@@ -100,10 +115,10 @@ public class BaseController
     }
 
     /**
-     * 响应返回结果
+     * 根据布尔结果响应返回结果。
      *
-     * @param result 结果
-     * @return 操作结果
+     * @param result 操作结果，true 为成功，false 为失败。
+     * @return 如果 result 为 true 返回成功，否则返回失败。
      */
     protected AjaxResult toAjax(boolean result)
     {
