@@ -197,11 +197,24 @@ public class AjaxResult extends HashMap<String, Object>
         return new AjaxResult(code, msg, null);
     }
 
+    /**
+     * 返回分页查询成功消息。
+     *
+     * @param data 分页数据对象。
+     * @return 包含分页数据的成功消息。
+     */
     public static AjaxResult success(IPage data)
     {
         return new AjaxResult(HttpStatus.SUCCESS, "查询成功",data.getTotal(), data.getRecords());
     }
 
+    /**
+     * 返回分页查询成功消息。
+     *
+     * @param data 数据对象。
+     * @param total 数据总数。
+     * @return 包含数据的成功消息。
+     */
     public static AjaxResult success(Object data,int total)
     {
         return new AjaxResult(HttpStatus.SUCCESS, "查询成功",total, data);

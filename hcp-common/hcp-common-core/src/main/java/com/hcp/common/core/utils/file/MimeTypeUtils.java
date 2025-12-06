@@ -38,6 +38,12 @@ public class MimeTypeUtils
             // pdf
             "pdf" };
 
+    /**
+     * 根据 MIME 类型前缀获取对应的文件扩展名。
+     *
+     * @param prefix MIME 类型前缀。
+     * @return 对应的文件扩展名。如果未找到匹配项，则返回空字符串。
+     */
     public static String getExtension(String prefix)
     {
         switch (prefix)

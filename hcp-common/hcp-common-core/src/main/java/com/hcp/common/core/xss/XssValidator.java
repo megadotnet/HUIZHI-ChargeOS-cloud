@@ -15,6 +15,13 @@ public class XssValidator implements ConstraintValidator<Xss, String>
 {
     private static final String HTML_PATTERN = "<(\\S*?)[^>]*>.*?|<.*? />";
 
+    /**
+     * 校验值是否包含 HTML 标签。
+     *
+     * @param value 需要校验的字符串值。
+     * @param constraintValidatorContext 约束验证器上下文。
+     * @return 如果值为空或不包含 HTML 标签，则返回 true；否则返回 false。
+     */
     @Override
     public boolean isValid(String value, ConstraintValidatorContext constraintValidatorContext)
     {
@@ -25,6 +32,12 @@ public class XssValidator implements ConstraintValidator<Xss, String>
         return !containsHtml(value);
     }
 
+    /**
+     * 检查字符串中是否包含 HTML 标签。
+     *
+     * @param value 需要检查的字符串。
+     * @return 如果包含 HTML 标签，则返回 true；否则返回 false。
+     */
     public static boolean containsHtml(String value)
     {
         StringBuilder sHtml = new StringBuilder();

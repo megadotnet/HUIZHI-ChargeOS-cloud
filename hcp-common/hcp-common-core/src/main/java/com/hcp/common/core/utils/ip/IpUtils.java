@@ -22,9 +22,9 @@ public class IpUtils
     public final static String REGX_IP_SEG = "(" + REGX_IP + "\\-" + REGX_IP + ")";
 
     /**
-     * 获取客户端IP
+     * 获取当前请求的客户端 IP 地址。
      *
-     * @return IP地址
+     * @return 客户端 IP 地址。
      */
     public static String getIpAddr()
     {
@@ -32,10 +32,10 @@ public class IpUtils
     }
 
     /**
-     * 获取客户端IP
+     * 获取指定请求的客户端 IP 地址。
      *
-     * @param request 请求对象
-     * @return IP地址
+     * @param request HTTP 请求对象。
+     * @return 客户端 IP 地址。
      */
     public static String getIpAddr(HttpServletRequest request)
     {
@@ -70,10 +70,10 @@ public class IpUtils
     }
 
     /**
-     * 检查是否为内部IP地址
+     * 检查给定的 IP 地址是否为内部 IP 地址。
      *
-     * @param ip IP地址
-     * @return 结果
+     * @param ip IP 地址字符串。
+     * @return 如果是内部 IP 地址，则返回 true；否则返回 false。
      */
     public static boolean internalIp(String ip)
     {
@@ -82,10 +82,10 @@ public class IpUtils
     }
 
     /**
-     * 检查是否为内部IP地址
+     * 检查给定的字节数组 IP 地址是否为内部 IP 地址。
      *
-     * @param addr byte地址
-     * @return 结果
+     * @param addr IP 地址的字节数组表示。
+     * @return 如果是内部 IP 地址，则返回 true；否则返回 false。
      */
     private static boolean internalIp(byte[] addr)
     {
@@ -125,10 +125,10 @@ public class IpUtils
     }
 
     /**
-     * 将IPv4地址转换成字节
+     * 将 IPv4 地址字符串转换为字节数组。
      *
-     * @param text IPv4地址
-     * @return byte 字节
+     * @param text IPv4 地址字符串。
+     * @return 转换后的字节数组。如果格式不正确，则返回 null。
      */
     public static byte[] textToNumericFormatV4(String text)
     {
@@ -213,9 +213,9 @@ public class IpUtils
     }
 
     /**
-     * 获取IP地址
+     * 获取本地主机的 IP 地址。
      *
-     * @return 本地IP地址
+     * @return 本地 IP 地址。如果无法获取，返回 "127.0.0.1"。
      */
     public static String getHostIp()
     {
@@ -230,9 +230,9 @@ public class IpUtils
     }
 
     /**
-     * 获取主机名
+     * 获取本地主机的主机名。
      *
-     * @return 本地主机名
+     * @return 本地主机名。如果无法获取，返回 "未知"。
      */
     public static String getHostName()
     {
@@ -247,10 +247,10 @@ public class IpUtils
     }
 
     /**
-     * 从多级反向代理中获得第一个非unknown IP地址
+     * 从多级反向代理中获得第一个非 unknown 的 IP 地址。
      *
-     * @param ip 获得的IP地址
-     * @return 第一个非unknown IP地址
+     * @param ip 逗号分隔的 IP 地址字符串。
+     * @return 第一个非 unknown 的 IP 地址。
      */
     public static String getMultistageReverseProxyIp(String ip)
     {
@@ -271,17 +271,20 @@ public class IpUtils
     }
 
     /**
-     * 检测给定字符串是否为未知，多用于检测HTTP请求相关
+     * 检测给定的字符串是否表示未知状态（如 "unknown"）。
      *
-     * @param checkString 被检测的字符串
-     * @return 是否未知
+     * @param checkString 被检测的字符串。
+     * @return 如果字符串为空或为 "unknown"（忽略大小写），则返回 true；否则返回 false。
      */
     public static boolean isUnknown(String checkString)
     {
         return StringUtils.isBlank(checkString) || "unknown".equalsIgnoreCase(checkString);
     }
     /**
-     * 是否为IP
+     * 判断字符串是否为有效的 IP 地址。
+     *
+     * @param ip 待检测的字符串。
+     * @return 如果是有效的 IP 地址，则返回 true；否则返回 false。
      */
     public static boolean isIP(String ip)
     {
@@ -289,7 +292,10 @@ public class IpUtils
     }
 
     /**
-     * 是否为IP，或 *为间隔的通配符地址
+     * 判断字符串是否为 IP 地址或包含通配符 '*' 的 IP 地址格式。
+     *
+     * @param ip 待检测的字符串。
+     * @return 如果符合格式，则返回 true；否则返回 false。
      */
     public static boolean isIpWildCard(String ip)
     {
@@ -297,7 +303,12 @@ public class IpUtils
     }
 
     /**
-     * 检测参数是否在ip通配符里
+     * 检测 IP 地址是否匹配带有通配符的规则。
+     * 此方法不进行基本的格式检查。
+     *
+     * @param ipWildCard 带有通配符的 IP 规则（例如 192.168.*.*）。
+     * @param ip 待检测的 IP 地址。
+     * @return 如果匹配，则返回 true；否则返回 false。
      */
     public static boolean ipIsInWildCardNoCheck(String ipWildCard, String ip)
     {
@@ -316,7 +327,10 @@ public class IpUtils
     }
 
     /**
-     * 是否为特定格式如:“10.10.10.1-10.10.10.99”的ip段字符串
+     * 判断字符串是否为 IP 段格式（例如 "10.10.10.1-10.10.10.99"）。
+     *
+     * @param ipSeg 待检测的字符串。
+     * @return 如果符合 IP 段格式，则返回 true；否则返回 false。
      */
     public static boolean isIPSegment(String ipSeg)
     {
@@ -324,7 +338,12 @@ public class IpUtils
     }
 
     /**
-     * 判断ip是否在指定网段中
+     * 判断 IP 地址是否在指定的 IP 段内。
+     * 此方法不进行基本的格式检查。
+     *
+     * @param iparea IP 段（例如 "192.168.1.1-192.168.1.10"）。
+     * @param ip 待检测的 IP 地址。
+     * @return 如果 IP 在段内，则返回 true；否则返回 false。
      */
     public static boolean ipIsInNetNoCheck(String iparea, String ip)
     {
@@ -349,11 +368,13 @@ public class IpUtils
     }
 
     /**
-     * 校验ip是否符合过滤串规则
+     * 校验 IP 地址是否符合过滤规则。
+     * 支持单个 IP、通配符 IP（如 192.168.*.*）和 IP 段（如 10.10.10.1-10.10.10.99）。
+     * 多个规则可以用分号分隔。
      *
-     * @param filter 过滤IP列表,支持后缀'*'通配,支持网段如:`10.10.10.1-10.10.10.99`
-     * @param ip 校验IP地址
-     * @return boolean 结果
+     * @param filter 过滤规则字符串。
+     * @param ip 待校验的 IP 地址。
+     * @return 如果 IP 符合任一规则，则返回 true；否则返回 false。
      */
     public static boolean isMatchedIp(String filter, String ip)
     {

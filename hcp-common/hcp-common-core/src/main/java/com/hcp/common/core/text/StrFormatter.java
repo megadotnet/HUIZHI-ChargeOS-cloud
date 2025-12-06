@@ -15,17 +15,18 @@ public class StrFormatter
     public static final char C_DELIM_END = '}';
 
     /**
-     * 格式化字符串<br>
-     * 此方法只是简单将占位符 {} 按照顺序替换为参数<br>
-     * 如果想输出 {} 使用 \\转义 { 即可，如果想输出 {} 之前的 \ 使用双转义符 \\\\ 即可<br>
-     * 例：<br>
-     * 通常使用：format("this is {} for {}", "a", "b") -> this is a for b<br>
-     * 转义{}： format("this is \\{} for {}", "a", "b") -> this is \{} for a<br>
-     * 转义\： format("this is \\\\{} for {}", "a", "b") -> this is \a for b<br>
+     * 格式化字符串。
+     * 此方法将占位符 {} 按照顺序替换为参数。
+     * <br>
+     * 转义规则：
+     * <ul>
+     * <li>如果想输出 {}，使用 \\转义 { 即可。例如：format("this is \\{} for {}", "a", "b") -> this is \{} for a</li>
+     * <li>如果想输出 {} 之前的 \，使用双转义符 \\\\ 即可。例如：format("this is \\\\{} for {}", "a", "b") -> this is \a for b</li>
+     * </ul>
      *
-     * @param strPattern 字符串模板
-     * @param argArray 参数列表
-     * @return 结果
+     * @param strPattern 字符串模板。
+     * @param argArray 参数列表。
+     * @return 格式化后的字符串。
      */
     public static String format(final String strPattern, final Object... argArray)
     {
