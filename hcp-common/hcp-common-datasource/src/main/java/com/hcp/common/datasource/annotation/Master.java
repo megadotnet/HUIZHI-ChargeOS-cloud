@@ -8,7 +8,11 @@ import java.lang.annotation.Target;
 import com.baomidou.dynamic.datasource.annotation.DS;
 
 /**
- * 主库数据源
+ * 主库数据源注解。
+ * <p>
+ * 用于标记使用主库数据源。
+ * 可以标注在类或方法上。
+ * </p>
  *
  * @author vctgo
  */

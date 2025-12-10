@@ -56,6 +56,13 @@ public class DataScopeAspect
      */
     public static final String DATA_SCOPE = "dataScope";
 
+    /**
+     * 在方法执行前进行数据过滤。
+     *
+     * @param point 切点对象。
+     * @param controllerDataScope 数据权限注解。
+     * @throws Throwable 如果发生异常。
+     */
     @Before("@annotation(controllerDataScope)")
     public void doBefore(JoinPoint point, DataScope controllerDataScope) throws Throwable
     {
@@ -63,6 +70,12 @@ public class DataScopeAspect
         handleDataScope(point, controllerDataScope);
     }
 
+    /**
+     * 处理数据范围过滤逻辑。
+     *
+     * @param joinPoint 切点对象。
+     * @param controllerDataScope 数据权限注解。
+     */
     protected void handleDataScope(final JoinPoint joinPoint, DataScope controllerDataScope)
     {
         // 获取当前的用户
@@ -81,13 +94,13 @@ public class DataScopeAspect
     }
 
     /**
-     * 数据范围过滤
+     * 数据范围过滤。
      *
-     * @param joinPoint 切点
-     * @param user 用户
-     * @param deptAlias 部门别名
-     * @param userAlias 用户别名
-     * @param permission 权限字符
+     * @param joinPoint 切点对象。
+     * @param user 当前用户。
+     * @param deptAlias 部门表别名。
+     * @param userAlias 用户表别名。
+     * @param permission 权限字符。
      */
     public static void dataScopeFilter(JoinPoint joinPoint, SysUser user, String deptAlias, String userAlias, String permission)
     {
@@ -160,7 +173,9 @@ public class DataScopeAspect
     }
 
     /**
-     * 拼接权限sql前先清空params.dataScope参数防止注入
+     * 拼接权限 SQL 前先清空 params.dataScope 参数，防止注入。
+     *
+     * @param joinPoint 切点对象。
      */
     private void clearDataScope(final JoinPoint joinPoint)
     {
