@@ -1,138 +1,141 @@
-# 核心业务流 (Core Business Flow)
+# 02. 核心业务流程与泳道图 (Core Business Flow)
 
-本文档通过详细的时序图与流程图，深度剖析“扫码充电”这一核心业务场景的全生命周期。
+> **文档受众**: 业务方、架构师
+> **核心目标**: 明确核心业务（充电全生命周期）在各系统间的流转路径，包含正向流程与异常处理。
 
-## 1. 扫码充电业务全景图 (Overview Flowchart)
+## 1. 核心业务全景 (Business Overview)
 
-用户从扫码到充电结束，经历了三个主要阶段：**准备阶段**、**充电阶段**、**结算阶段**。
+本平台最核心的业务闭环为 **"充电服务交易闭环"**。
+业务主线围绕 `订单(Order)` 展开，涉及 `设备(Pile)` 控制与 `资金(Fund)` 结算。
+
+### 1.1 关键业务节点
+1.  **用户认证与充值**: 必须先登录并保证账户余额充足（预充值模式）。
+2.  **扫码启动**: 校验设备状态与用户资格。
+3.  **充电中监控**: 实时接收设备上报的电压、电流、SOC及累计费用。
+4.  **结束结算**: 自动生成账单，扣除余额，多退少补（针对预冻结场景）。
+
+## 2. 充电全流程泳道图 (Charging Swimlane Diagram)
+
+本图展示了从用户扫码到结算完成的完整业务流转。
 
 ```mermaid
 flowchart TD
-    %% 样式
-    classDef start fill:#f9fbe7,stroke:#827717,stroke-width:2px;
-    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    classDef decision fill:#fff3e0,stroke:#e65100,stroke-width:2px;
-    classDef endNode fill:#ffebee,stroke:#c62828,stroke-width:2px;
-
-    Start[用户扫码]:::start
-    CheckGun{检测枪头状态}:::decision
-    Auth{鉴权与余额检查}:::decision
-    SendCmd[下发启动指令]:::process
-    PileAck{桩端响应}:::decision
-    Charging[充电进行中]:::process
-    Monitor{实时监测}:::decision
-    StopCmd[用户/系统发起停止]:::process
-    Settlement[生成账单与扣款]:::process
-    End[结束流程]:::endNode
-
-    Start --> CheckGun
-    CheckGun -- 未插枪 --> PromptInsert[提示插入枪头]:::process
-    PromptInsert --> CheckGun
-    CheckGun -- 已插枪 --> Auth
-
-    Auth -- 余额不足 --> PromptRecharge[提示充值]:::process
-    PromptRecharge --> Auth
-    Auth -- 通过 --> SendCmd
-
-    SendCmd --> PileAck
-    PileAck -- 失败-超时 --> FailMsg[提示启动失败]:::endNode
-    PileAck -- 成功 --> Charging
-
-    Charging --> Monitor
-    Monitor -- 正常 --> Monitor
-    Monitor -- 异常-急停 --> StopCmd
-    Monitor -- 用户手动停止 --> StopCmd
-    Monitor -- 余额耗尽 --> StopCmd
-
-    StopCmd --> Settlement
-    Settlement --> End
-```
-
-## 2. 详细时序交互 (Detailed Sequence)
-
-### 2.1 正向流程：启动与结算 (Start & Settlement)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as 车主-小程序
-    participant Cloud as 云平台-SaaS
-    participant Gateway as 硬件网关-TCP
-    participant Pile as 充电桩-设备
-
-    Note over User, Pile: 阶段一：启动充电
-    User->>Cloud: 扫码请求-桩ID
-    Cloud->>Cloud: 校验桩状态-空闲-故障
-    Cloud->>Cloud: 校验用户余额-信用分
-    Cloud->>Gateway: 发送启动指令-用户ID-金额限制
-    Gateway->>Pile: 转发启动报文-二进制协议
-    Pile-->>Gateway: 回复启动确认-ACK
-    Gateway-->>Cloud: 启动成功通知
-    Cloud-->>User: 提示“启动成功，准备充电”
-
-    Note over Pile: 设备自检绝缘性...
-
-    Note over User, Pile: 阶段二：充电进行中
-    loop 每15-60秒上报一次
-        Pile->>Gateway: 实时数据-电压-电流-SOC-消费金额
-        Gateway->>Cloud: 数据解析与存储
-        Cloud->>Cloud: 更新订单实时费用
-        Cloud->>User: 推送充电进度-Socket-轮询
+    %% 泳道定义
+    subgraph User [C端车主 - User]
+        ScanQR[扫码/输入桩号]:::action
+        ClickStart[点击启动充电]:::action
+        Monitor[查看实时进度]:::action
+        ClickStop[点击停止充电]:::action
     end
 
-    Note over User, Pile: 阶段三：结束与结算
-    User->>Cloud: 点击“停止充电”
-    Cloud->>Gateway: 发送停止指令
-    Gateway->>Pile: 转发停止报文
-    Pile->>Pile: 停止输出，锁定账单
-    Pile-->>Gateway: 上报最终结算数据-总电量-总金额-停止原因
-    Gateway-->>Cloud: 转发结算数据
-    Cloud->>Cloud: 生成最终订单
-    Cloud->>Cloud: 扣除余额/发起支付
-    Cloud-->>User: 展示账单详情
-```
-
-### 2.2 逆向流程：启动失败 (Start Failure)
-
-当指令下发后，设备可能因故障、网络超时或物理连接问题无法启动。
-
-```mermaid
-sequenceDiagram
-    participant User as 车主
-    participant Cloud as 云平台
-    participant Gateway as 硬件网关
-    participant Pile as 充电桩
-
-    User->>Cloud: 请求启动充电
-    Cloud->>Gateway: 下发启动指令
-    Gateway->>Pile: 转发指令
-
-    alt 场景A：设备无响应-超时
-        Gateway--xPile: 网络超时
-        Gateway-->>Cloud: 响应超时-Timeout
-        Cloud-->>User: 提示“设备连接超时，请重试”
-    else 场景B：设备拒绝-故障
-        Pile-->>Gateway: 回复失败-错误码-绝缘检测异常
-        Gateway-->>Cloud: 启动失败-绝缘异常
-        Cloud-->>User: 提示“设备故障，请更换桩”
-        Cloud->>Cloud: 自动发起退款-若已预冻结
+    subgraph MP [小程序端 - Client]
+        ReqPileInfo[请求桩详情]:::process
+        ReqStart[请求启动充电]:::process
+        ReqStop[请求停止充电]:::process
+        ShowBill[展示账单详情]:::view
     end
+
+    subgraph Platform [云平台 - Order Service]
+        CheckPile[校验桩状态]:::decision
+        CreateOrder[创建预订单 - PreCharge]:::process
+        CheckBalance{余额充足?}:::decision
+        SendStartCmd[下发启动指令]:::process
+        UpdateOrderCharging[更新订单: 充电中]:::process
+        PushStatus[推送实时状态]:::process
+        SendStopCmd[下发停止指令]:::process
+        CalcBill[计算最终费用]:::process
+        SettleOrder[结算扣款]:::process
+        FinishOrder[更新订单: 已支付]:::process
+    end
+
+    subgraph IoT [设备网关 - IoT Gateway]
+        ForwardCmd[转发指令]:::process
+        RecvHeartbeat[接收实时数据]:::process
+        RecvResult[接收启停结果]:::process
+    end
+
+    subgraph Pile [充电桩 - Hardware]
+        CheckSelf[自检硬件状态]:::decision
+        StartOutput[闭合继电器输出]:::hardware
+        Reporting[上报电压/电流/SOC]:::hardware
+        StopOutput[断开继电器]:::hardware
+        ReportFinal[上报最终消费数据]:::hardware
+    end
+
+    subgraph Fund [资金结算 - Wallet]
+        Freeze[冻结预估金额 - 可选]:::fund
+        Deduct[扣除实际金额]:::fund
+        Refund[退还剩余冻结 - 可选]:::fund
+    end
+
+    %% 流程连线 - 启动阶段
+    ScanQR --> ReqPileInfo
+    ReqPileInfo --> CheckPile
+    CheckPile -- 空闲 --> ReqPileInfo
+    CheckPile -- 占用/故障 --> ShowError[提示设备不可用]:::error
+
+    ClickStart --> ReqStart
+    ReqStart --> CreateOrder
+    CreateOrder --> CheckBalance
+    CheckBalance -- 不足 --> PromptTopUp[提示充值]:::error
+    CheckBalance -- 充足 --> Freeze
+    Freeze --> SendStartCmd
+
+    SendStartCmd --> ForwardCmd
+    ForwardCmd --> Pile
+    Pile --> CheckSelf
+    CheckSelf -- 失败 --> ReportStartFail[上报启动失败]:::error
+    ReportStartFail --> RecvResult --> CloseOrder[关闭订单/解冻]:::process
+
+    CheckSelf -- 成功 --> StartOutput
+    StartOutput --> ReportStartSuccess[上报启动成功]:::process
+    ReportStartSuccess --> RecvResult --> UpdateOrderCharging
+
+    %% 流程连线 - 充电中
+    StartOutput --> Reporting
+    Reporting --> RecvHeartbeat --> PushStatus
+    PushStatus --> Monitor
+
+    %% 流程连线 - 停止与结算
+    ClickStop --> ReqStop
+    ReqStop --> SendStopCmd
+    SendStopCmd --> ForwardCmd
+    ForwardCmd --> Pile
+    Pile --> StopOutput
+    StopOutput --> ReportFinal
+    ReportFinal --> RecvResult --> CalcBill
+    CalcBill --> Deduct
+    Deduct --> FinishOrder
+    FinishOrder --> Refund
+    Refund --> ShowBill
+
+    %% 样式类定义
+    classDef action fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
+    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,rhombus;
+    classDef hardware fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
+    classDef fund fill:#fce4ec,stroke:#e91e63,stroke-width:2px;
+    classDef view fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px;
+    classDef error fill:#ffebee,stroke:#ef5350,stroke-width:2px,stroke-dasharray: 5 5;
 ```
 
-## 3. 关键业务规则 (Business Rules)
+## 3. 异常与逆向流程 (Exception Flows)
 
-### 3.1 资金冻结与扣款
-为防止“逃单”风险，通常采用两种策略：
-1.  **预充值/预冻结**：启动前冻结用户账户一定金额（如30元）。充电结束时多退少补。
-    -   *风险*：用户体验较差。
-2.  **信用支付**：引入微信支付分或支付宝芝麻信用，先充后付。
-    -   *风险*：需接入第三方信用体系。
+### 3.1 启动失败 (Start Charge Failed)
+- **场景**: 设备离线、枪头未插好、硬件故障。
+- **处理**:
+    1.  平台接收到设备返回的 `StartResult=Fail` 或超时未响应。
+    2.  订单状态更新为 `启动失败 (StartFail)`。
+    3.  **资金回滚**: 如有预冻结资金，立即触发解冻流程，原路退回用户余额。
 
-### 3.2 异常停止策略
-当出现以下情况时，云平台必须**强制下发停止指令**：
-1.  **余额耗尽**：实时计费金额 >= 账户余额。
-2.  **设备离线**：长时间（如5分钟）未收到设备心跳或实时数据。
-3.  **运营干预**：管理员在后台手动停止。
+### 3.2 异常停止 (Abnormal Stop)
+- **场景**: 用户按下急停按钮、设备过温保护、网络中断。
+- **处理**:
+    1.  设备主动上报 `StopReason` (如: 急停、拔枪)。
+    2.  平台接收后立即结算，生成订单账单。
+    3.  若存在未结算金额（如网络中断导致数据丢失），平台根据最后一次心跳数据进行**兜底结算**，并在后续人工核对。
 
-### 3.3 掉单处理 (Offline Billing)
-若充电结束时网络中断，桩端必须保存充电记录。待网络恢复后，通过“补单协议”上报云端，云端根据补单数据完成延迟结算。
+### 3.3 充值退款 (Refund)
+- **场景**: 用户余额提现。
+- **流程**: 用户发起申请 -> 平台运营审核 -> 财务打款 -> 扣除余额。
+- **注意**: 需校验是否存在“进行中”的订单，防止恶意提现后逃单。
