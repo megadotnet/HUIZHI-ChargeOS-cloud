@@ -71,12 +71,14 @@ public class Arith
     }
 
     /**
-     * 提供（相对）精确的除法运算。当发生除不尽的情况时，由scale参数指
-     * 定精度，以后的数字四舍五入。
-     * @param v1 被除数
-     * @param v2 除数
-     * @param scale 表示表示需要精确到小数点以后几位。
-     * @return 两个参数的商
+     * 执行两个浮点数的除法运算，并返回指定精度的双精度浮点结果。
+     *
+     * @param v1 被除数。
+     * @param v2 除数。
+     * @param scale 运算结果保留的小数位数，必须非负。
+     * @return 两个数相除的结果 (double)，使用四舍五入模式 (HALF_UP)。
+     * @throws IllegalArgumentException 如果 scale 小于 0。
+     * @throws ArithmeticException 如果除数 v2 为 0。
      */
     public static double div(double v1, double v2, int scale)
     {
