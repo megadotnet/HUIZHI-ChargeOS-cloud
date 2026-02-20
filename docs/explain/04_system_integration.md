@@ -77,10 +77,9 @@ flowchart TD
     Hardware <--> NettyGateway
 
     %% 注释
-    note right of NettyGateway
-        处理二进制协议-如云快充1.6
-        维持百万级设备长连接
-    end note
+    GatewayNote[处理二进制协议-如云快充1.6<br/>维持百万级设备长连接]
+    NettyGateway -.-> GatewayNote
+    style GatewayNote fill:#fff,stroke:#333,stroke-dasharray: 5 5
 ```
 
 ## 2. 外部集成详解 (Integration Details)
