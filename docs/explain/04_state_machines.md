@@ -1,94 +1,71 @@
 # 04. 核心单据状态机 (Core State Machines)
 
-> **文档受众**: 测试人员、后端开发
-> **核心目标**: 明确核心业务单据（订单、设备）的状态流转逻辑及触发条件，特别是异常分支。
+> **文档受众**: 研发人员、测试人员
+> **核心目标**: 明确核心单据的全生命周期状态流转及触发条件。
 
-## 1. 充电订单状态机 (Order State Machine)
+## 1. 订货单状态机 (Purchase Order State Machine)
 
-订单是整个充电交易的核心载体，其状态必须与设备物理状态保持强一致。
-
-### 1.1 状态枚举 (States)
-
-| 状态码 | 英文标识 | 描述 |
-| :--- | :--- | :--- |
-| **0** | `PLACE` | 预下单/创建中。 |
-| **1** | `PRE_CHARGE` | 启动指令已下发，等待设备响应。 |
-| **2** | `CHARGING` | 充电进行中，收到设备心跳。 |
-| **3** | `SETTLE` | 充电结束，正在计算费用。 |
-| **4** | `PAYED` | 费用已结清，订单完成。 |
-| **-1** | `FAIL` | 启动失败或设备故障。 |
-| **-2** | `CANCEL` | 用户主动取消（未启动前）。 |
-
-### 1.2 状态流转图 (State Diagram)
+描述订货单从创建到最终完成的流转过程。
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PLACE : 用户扫码下单
-    PLACE --> PRE_CHARGE : 下发启动指令
+    [*] --> CREATED: 门店提交订单
 
-    state PRE_CHARGE {
-        [*] --> WaitingDevice : 等待设备响应
-        WaitingDevice --> DeviceAck : 收到启动成功报文
-        WaitingDevice --> DeviceNack : 收到启动失败报文
-        WaitingDevice --> Timeout : 超时未响应
-    }
+    CREATED --> AUDITED: 总部审核通过
+    CREATED --> REJECTED: 总部驳回
+    CREATED --> CANCELLED: 门店主动取消
 
-    PRE_CHARGE --> CHARGING : 启动成功
-    PRE_CHARGE --> FAIL : 启动失败/超时
-    FAIL --> REFUND : 触发预冻结退款
-    REFUND --> [*]
+    AUDITED --> SYNCED: 同步乐檬成功
+    AUDITED --> SYNC_FAILED: 同步乐檬失败
 
-    CHARGING --> SETTLE : 用户/设备停止充电
+    SYNC_FAILED --> SYNCED: 重试成功
+    SYNC_FAILED --> CANCELLED: 无法同步取消
 
-    state SETTLE {
-        [*] --> CalcAmount : 计算电费+服务费
-        CalcAmount --> DeductBalance : 扣除余额
-    }
+    SYNCED --> SHIPPED: 乐檬发货回调
+    SHIPPED --> COMPLETED: 门店确认收货
+    SHIPPED --> PARTIAL_SHIPPED: 乐檬部分发货
 
-    SETTLE --> PAYED : 扣款成功/结算完成
-    SETTLE --> EXCEPTION : 扣款失败(余额不足)
+    PARTIAL_SHIPPED --> COMPLETED: 剩余发货或结束
 
-    PAYED --> [*]
-    EXCEPTION --> [*] : 转入欠费追缴流程
+    COMPLETED --> [*]
+    REJECTED --> [*]: 解冻资金
+    CANCELLED --> [*]: 解冻资金
+
+    note right of CREATED
+        预冻结资金
+    end note
+
+    note right of SHIPPED
+        正式扣除资金
+    end note
 ```
 
-## 2. 充电枪状态机 (Connector/Gun State Machine)
+## 2. 资金结算单状态机 (Settlement Sheet State Machine)
 
-设备物理状态决定了是否可以创建新订单。
-
-### 2.1 状态枚举 (States)
-
-| 状态码 | 英文标识 | 描述 |
-| :--- | :--- | :--- |
-| **0** | `IDLE` | 空闲，可使用。 |
-| **1** | `INSERTED` | 枪头已插入车辆，未启动。 |
-| **2** | `CHARGING` | 正在充电。 |
-| **3** | `FAULT` | 设备故障/离线。 |
-| **4** | `OCCUPIED` | 占用中（如充电结束未拔枪）。 |
-
-### 2.2 状态流转图 (State Diagram)
+描述周期性结算单的状态流转。
 
 ```mermaid
 stateDiagram-v2
-    [*] --> IDLE : 设备上线/初始化
+    [*] --> DRAFT: 系统生成草稿
 
-    IDLE --> INSERTED : 用户插枪
-    IDLE --> FAULT : 自检失败/离线
+    DRAFT --> CONFIRMED: 门店/总部确认无误
+    DRAFT --> DISPUTED: 存在异议
 
-    INSERTED --> CHARGING : 订单启动成功
-    INSERTED --> IDLE : 用户拔枪(未启动)
+    DISPUTED --> DRAFT: 调整后重新生成
 
-    CHARGING --> OCCUPIED : 充电结束(未拔枪)
-    CHARGING --> FAULT : 充电中故障(急停)
+    CONFIRMED --> PAID: 财务打款/扣款完成
 
-    OCCUPIED --> IDLE : 用户拔枪归位
-    OCCUPIED --> FAULT : 发生硬件故障
-
-    FAULT --> IDLE : 故障修复/重新上线
+    PAID --> [*]
 ```
 
-## 3. 并发与一致性保障
+## 3. 状态变更说明
 
-1.  **状态防重**: 订单状态流转必须单向不可逆（除特殊回滚流程）。例如，一旦进入 `PAYED`，绝不可再回到 `CHARGING`。
-2.  **分布式锁**: 在 `SETTLE` 阶段，建议对 `OrderId` 加锁，防止重复结算（如设备重发结束报文）。
-3.  **最终一致性**: 若设备突然离线导致订单卡在 `CHARGING`，需有定时任务（Job）扫描长时间无心跳的订单，主动触发 `Status Check` 或强制结算。
+| 状态 | 说明 | 触发动作 | 资金影响 |
+| :--- | :--- | :--- | :--- |
+| **CREATED** | 已创建 | 门店下单 | 冻结 `订单总额` |
+| **AUDITED** | 已审核 | 总部运营审核 | 无 |
+| **SYNCED** | 已同步 | 系统推送到乐檬 API | 无 |
+| **SHIPPED** | 已发货 | 乐檬回调发货信息 | 解冻原金额，扣除 `实际发货金额` |
+| **COMPLETED** | 已完成 | 门店收货确认 | 无 |
+| **REJECTED** | 已驳回 | 总部审核不通过 | 全额解冻 |
+| **CANCELLED** | 已取消 | 门店取消或同步失败 | 全额解冻 |

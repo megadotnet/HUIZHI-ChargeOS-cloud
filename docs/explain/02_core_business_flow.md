@@ -1,141 +1,130 @@
-# 02. 核心业务流程与泳道图 (Core Business Flow)
+# 02. 核心业务流程 (Core Business Flows)
 
-> **文档受众**: 业务方、架构师
-> **核心目标**: 明确核心业务（充电全生命周期）在各系统间的流转路径，包含正向流程与异常处理。
+> **文档受众**: 产品经理、研发人员
+> **核心目标**: 梳理跨端业务流转逻辑，明确关键节点的状态变更与系统交互。
 
-## 1. 核心业务全景 (Business Overview)
+## 1. 门店订货与履约流程 (Procurement Flow)
 
-本平台最核心的业务闭环为 **"充电服务交易闭环"**。
-业务主线围绕 `订单(Order)` 展开，涉及 `设备(Pile)` 控制与 `资金(Fund)` 结算。
-
-### 1.1 关键业务节点
-1.  **用户认证与充值**: 必须先登录并保证账户余额充足（预充值模式）。
-2.  **扫码启动**: 校验设备状态与用户资格。
-3.  **充电中监控**: 实时接收设备上报的电压、电流、SOC及累计费用。
-4.  **结束结算**: 自动生成账单，扣除余额，多退少补（针对预冻结场景）。
-
-## 2. 充电全流程泳道图 (Charging Swimlane Diagram)
-
-本图展示了从用户扫码到结算完成的完整业务流转。
+此流程描述门店发起订货到乐檬发货的全过程，包含资金冻结逻辑。
 
 ```mermaid
 flowchart TD
     %% 泳道定义
-    subgraph User [C端车主 - User]
-        ScanQR[扫码/输入桩号]:::action
-        ClickStart[点击启动充电]:::action
-        Monitor[查看实时进度]:::action
-        ClickStop[点击停止充电]:::action
+    subgraph StoreLane [门店端 Store]
+        StartOrder[开始订货]
+        SelectGoods[选择商品]
+        SubmitOrder[提交订单]
+        CheckStatus[查看订单状态]
+        ReceiveGoods[确认收货]
     end
 
-    subgraph MP [小程序端 - Client]
-        ReqPileInfo[请求桩详情]:::process
-        ReqStart[请求启动充电]:::process
-        ReqStop[请求停止充电]:::process
-        ShowBill[展示账单详情]:::view
+    subgraph HQLane [总部运营 HQ]
+        AuditOrder[审核订单]
+        RejectOrder[驳回订单]
     end
 
-    subgraph Platform [云平台 - Order Service]
-        CheckPile[校验桩状态]:::decision
-        CreateOrder[创建预订单 - PreCharge]:::process
-        CheckBalance{余额充足?}:::decision
-        SendStartCmd[下发启动指令]:::process
-        UpdateOrderCharging[更新订单: 充电中]:::process
-        PushStatus[推送实时状态]:::process
-        SendStopCmd[下发停止指令]:::process
-        CalcBill[计算最终费用]:::process
-        SettleOrder[结算扣款]:::process
-        FinishOrder[更新订单: 已支付]:::process
+    subgraph SystemLane [自研系统 System]
+        CheckStock[校验库存]
+        CheckBalance[校验余额/信用]
+        FreezeFund[冻结资金]
+        SyncLemeng[同步至乐檬]
+        UpdateStatus[更新订单状态]
+        DeductFund[正式扣款]
+        UnfreezeFund[解冻资金]
     end
 
-    subgraph IoT [设备网关 - IoT Gateway]
-        ForwardCmd[转发指令]:::process
-        RecvHeartbeat[接收实时数据]:::process
-        RecvResult[接收启停结果]:::process
+    subgraph LemengLane [乐檬供应链 Lemeng]
+        ReceiveAPI[接收订单API]
+        Logistics[仓库发货]
+        Callback[发货回调/状态同步]
     end
 
-    subgraph Pile [充电桩 - Hardware]
-        CheckSelf[自检硬件状态]:::decision
-        StartOutput[闭合继电器输出]:::hardware
-        Reporting[上报电压/电流/SOC]:::hardware
-        StopOutput[断开继电器]:::hardware
-        ReportFinal[上报最终消费数据]:::hardware
-    end
+    %% 流程逻辑
+    StartOrder --> SelectGoods
+    SelectGoods --> SubmitOrder
+    SubmitOrder --> CheckStock
+    CheckStock -- 库存不足 --> SelectGoods
+    CheckStock -- 库存充足 --> CheckBalance
 
-    subgraph Fund [资金结算 - Wallet]
-        Freeze[冻结预估金额 - 可选]:::fund
-        Deduct[扣除实际金额]:::fund
-        Refund[退还剩余冻结 - 可选]:::fund
-    end
+    CheckBalance -- 余额不足 --> SubmitOrder
+    CheckBalance -- 余额充足 --> FreezeFund
+    FreezeFund --> AuditOrder
 
-    %% 流程连线 - 启动阶段
-    ScanQR --> ReqPileInfo
-    ReqPileInfo --> CheckPile
-    CheckPile -- 空闲 --> ReqPileInfo
-    CheckPile -- 占用/故障 --> ShowError[提示设备不可用]:::error
+    AuditOrder -- 驳回 --> RejectOrder
+    RejectOrder --> UnfreezeFund
+    UnfreezeFund --> CheckStatus
 
-    ClickStart --> ReqStart
-    ReqStart --> CreateOrder
-    CreateOrder --> CheckBalance
-    CheckBalance -- 不足 --> PromptTopUp[提示充值]:::error
-    CheckBalance -- 充足 --> Freeze
-    Freeze --> SendStartCmd
-
-    SendStartCmd --> ForwardCmd
-    ForwardCmd --> Pile
-    Pile --> CheckSelf
-    CheckSelf -- 失败 --> ReportStartFail[上报启动失败]:::error
-    ReportStartFail --> RecvResult --> CloseOrder[关闭订单/解冻]:::process
-
-    CheckSelf -- 成功 --> StartOutput
-    StartOutput --> ReportStartSuccess[上报启动成功]:::process
-    ReportStartSuccess --> RecvResult --> UpdateOrderCharging
-
-    %% 流程连线 - 充电中
-    StartOutput --> Reporting
-    Reporting --> RecvHeartbeat --> PushStatus
-    PushStatus --> Monitor
-
-    %% 流程连线 - 停止与结算
-    ClickStop --> ReqStop
-    ReqStop --> SendStopCmd
-    SendStopCmd --> ForwardCmd
-    ForwardCmd --> Pile
-    Pile --> StopOutput
-    StopOutput --> ReportFinal
-    ReportFinal --> RecvResult --> CalcBill
-    CalcBill --> Deduct
-    Deduct --> FinishOrder
-    FinishOrder --> Refund
-    Refund --> ShowBill
-
-    %% 样式类定义
-    classDef action fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
-    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,rhombus;
-    classDef hardware fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
-    classDef fund fill:#fce4ec,stroke:#e91e63,stroke-width:2px;
-    classDef view fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px;
-    classDef error fill:#ffebee,stroke:#ef5350,stroke-width:2px,stroke-dasharray: 5 5;
+    AuditOrder -- 通过 --> SyncLemeng
+    SyncLemeng --> ReceiveAPI
+    ReceiveAPI --> Logistics
+    Logistics --> Callback
+    Callback --> UpdateStatus
+    UpdateStatus --> DeductFund
+    DeductFund --> ReceiveGoods
 ```
 
-## 3. 异常与逆向流程 (Exception Flows)
+## 2. 门店退货流程 (Return Flow)
 
-### 3.1 启动失败 (Start Charge Failed)
-- **场景**: 设备离线、枪头未插好、硬件故障。
-- **处理**:
-    1.  平台接收到设备返回的 `StartResult=Fail` 或超时未响应。
-    2.  订单状态更新为 `启动失败 (StartFail)`。
-    3.  **资金回滚**: 如有预冻结资金，立即触发解冻流程，原路退回用户余额。
+此流程描述门店发起退货申请，经审核后由乐檬进行回收的逆向流程。
 
-### 3.2 异常停止 (Abnormal Stop)
-- **场景**: 用户按下急停按钮、设备过温保护、网络中断。
-- **处理**:
-    1.  设备主动上报 `StopReason` (如: 急停、拔枪)。
-    2.  平台接收后立即结算，生成订单账单。
-    3.  若存在未结算金额（如网络中断导致数据丢失），平台根据最后一次心跳数据进行**兜底结算**，并在后续人工核对。
+```mermaid
+flowchart TD
+    %% 泳道定义
+    subgraph StoreLane [门店端 Store]
+        StartReturn[发起退货申请]
+        ShipReturn[退货发出]
+    end
 
-### 3.3 充值退款 (Refund)
-- **场景**: 用户余额提现。
-- **流程**: 用户发起申请 -> 平台运营审核 -> 财务打款 -> 扣除余额。
-- **注意**: 需校验是否存在“进行中”的订单，防止恶意提现后逃单。
+    subgraph HQLane [总部运营 HQ]
+        AuditReturn[审核退货]
+        RejectReturn[驳回退货]
+    end
+
+    subgraph SystemLane [自研系统 System]
+        ValidateReturn[校验退货规则]
+        SyncReturnLemeng[同步退货单至乐檬]
+        RefundFund[退还资金]
+    end
+
+    subgraph LemengLane [乐檬供应链 Lemeng]
+        ReceiveReturnAPI[接收退货API]
+        ConfirmReceipt[仓库确认收货]
+        ReturnCallback[收货回调]
+    end
+
+    %% 流程逻辑
+    StartReturn --> ValidateReturn
+    ValidateReturn -- 不符合规则 --> StartReturn
+    ValidateReturn -- 符合规则 --> AuditReturn
+
+    AuditReturn -- 驳回 --> RejectReturn
+    AuditReturn -- 通过 --> SyncReturnLemeng
+
+    SyncReturnLemeng --> ReceiveReturnAPI
+    ReceiveReturnAPI --> ShipReturn
+    ShipReturn --> ConfirmReceipt
+    ConfirmReceipt --> ReturnCallback
+    ReturnCallback --> RefundFund
+```
+
+## 3. 资金结算逻辑 (Fund Settlement)
+
+资金结算贯穿订货与退货的全生命周期。
+
+1.  **下单时**: 系统预冻结订单金额（含运费）。
+2.  **发货后**: 系统根据实际发货数量进行正式扣款（解冻并扣除）。
+3.  **差异处理**: 若乐檬缺货，仅扣除实际发货金额，剩余冻结资金自动解冻。
+4.  **退货时**: 乐檬确认收货数量后，按原价（或折损价）退还至门店余额。
+
+```mermaid
+flowchart LR
+    Orders[订单生成] --> Freeze[资金冻结]
+    Freeze --> Shipping[乐檬发货]
+    Shipping --> Settlement[实际扣款]
+    Settlement --> Balance[门店余额减少]
+
+    Returns[退货申请] --> ReturnAudit[审核通过]
+    ReturnAudit --> GoodsBack[乐檬收货]
+    GoodsBack --> Refund[资金退还]
+    Refund --> BalanceIncrease[门店余额增加]
+```
