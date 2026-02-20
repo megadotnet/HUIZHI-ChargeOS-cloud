@@ -94,8 +94,14 @@ classDiagram
     ChargingOrder "*" -- "1" PriceRule : 应用规则
 
     %% 样式应用
-    class ChargingStation,ChargingPile,Connector,ChargingOrder,MemberBalance main
-    class Tenant,User,PriceRule support
+    class ChargingStation main
+    class ChargingPile main
+    class Connector main
+    class ChargingOrder main
+    class MemberBalance main
+    class Tenant support
+    class User support
+    class PriceRule support
 ```
 
 ## 3. 数据结构关键说明
