@@ -595,16 +595,35 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils
     private static final String S_STR = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     private static final String S_ALL = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-
-
+    /**
+     * 清除字符串中的特殊字符和空白字符。
+     *
+     * @param txt 需要处理的字符串。
+     * @return 处理后的字符串 (String)，其中特殊字符和空白已被移除。
+     */
     public static String cleanChars(String txt) {
         return txt.replaceAll("[ 　`·•�\u0001\\f\\t\\v\\s]", "");
     }
 
+    /**
+     * 生成指定长度的随机字符串，包含数字和大小写字母。
+     *
+     * @param count 生成的字符串长度。
+     * @return 随机生成的字符串 (String)。
+     * @throws IllegalArgumentException 如果 count 小于 0。
+     */
     public static String random(int count) {
         return random(count, RandomType.ALL);
     }
 
+    /**
+     * 根据指定的类型生成指定长度的随机字符串。
+     *
+     * @param count 生成的字符串长度。
+     * @param randomType 随机字符串的类型（数字、字母或全部）。
+     * @return 随机生成的字符串 (String)。
+     * @throws IllegalArgumentException 如果 count 小于 0。
+     */
     public static String random(int count, RandomType randomType) {
         if (count == 0) {
             return "";
@@ -628,9 +647,13 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils
     }
 
     /**
-     * @param oldArr 旧数组
-     * @param newArr 新数组
-     * @return Map 包含两个数组，相较于旧数组，新数组多了哪些元素，以及少了哪些元素
+     * 比较两个字符串数组，找出相对于旧数组，新数组中新增和减少的元素。
+     *
+     * @param oldArr 旧字符串数组。
+     * @param newArr 新字符串数组。
+     * @return 包含比较结果的 Map (Map<String, String[]>)。
+     *         Key "addArr" 对应新增的元素数组；
+     *         Key "deleteArr" 对应减少的元素数组。
      */
     public static Map<String, String[]> CompareStringArray(String[] oldArr, String[] newArr){
         List<String> addList = new ArrayList<>();
@@ -656,6 +679,13 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils
         return res;
     }
 
+    /**
+     * 将字符串数组转换为长整型数组。
+     *
+     * @param str 字符串数组，每个元素必须是有效的长整型数字符串。
+     * @return 转换后的长整型数组 (Long[])。
+     * @throws NumberFormatException 如果数组中的字符串不能被解析为 Long。
+     */
     public static Long[] StringToLong(String[] str) {
         Long[] arr = new Long[str.length];
         for (int i = 0; i < str.length; i++) {

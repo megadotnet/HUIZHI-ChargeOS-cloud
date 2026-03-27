@@ -136,6 +136,13 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils
         return new Date(time);
     }
 
+    /**
+     * 计算两个日期之间的时间差，并格式化为中文文本描述。
+     *
+     * @param endDate 结束时间。
+     * @param nowDate 开始时间。
+     * @return 表示时间差的格式化字符串 (String)，格式为 "X天X小时X分钟"。
+     */
     public static String getDatePoor(Date endDate, Date nowDate)
     {
         long nd = 1000 * 24 * 60 * 60;
